@@ -87,8 +87,6 @@ draw2d.shape.basic.VertexResizeHandle = draw2d.ResizeHandle.extend(
       return
     }
 
-    this.setPosition(this.x + dx2, this.y + dy2)
-
     // update the polyline for immediately  drag&drop feedback
     //
     this.vertex.translate(dx2, dy2)
@@ -100,11 +98,12 @@ draw2d.shape.basic.VertexResizeHandle = draw2d.ResizeHandle.extend(
       newPos = this.getCanvas().snapToHelper(this, newPos)
     }
 
+    this.setPosition(newPos.x - this.getWidth() / 2, newPos.y - this.getHeight() / 2)
     this.owner.setVertex(this.index, newPos.x, newPos.y)
 
     // update the command for the undo/redo stuff
     //
-    this.command.updatePosition(this.vertex.x, this.vertex.y)
+    this.command.updatePosition(newPos.x, newPos.y)
   },
 
   /**

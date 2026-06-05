@@ -85,6 +85,17 @@ draw2d.policy.connection.ClickConnectionCreatePolicy = draw2d.policy.connection.
         var _this = this;
         var port = figure;
 
+        // While drawing, the beeline/tempConnection sit on top in z-order and can
+        // shadow a destination port. Re-do hit detection excluding them so the port
+        // is found correctly.
+        if (this.port1 !== null && this.beeline !== null) {
+            var canvas = this.beeline.getCanvas();
+            var realFigure = canvas.getBestFigure(x, y, [this.beeline, this.tempConnection]);
+            if (realFigure instanceof draw2d.Port) {
+                port = realFigure;
+            }
+        }
+
         if(port === null && this.port1 === null){
             return;
         }
@@ -92,14 +103,15 @@ draw2d.policy.connection.ClickConnectionCreatePolicy = draw2d.policy.connection.
         // nothing found at all
         //
         if(port===null){
-            this.vertices.push(new draw2d.geo.Point(x,y));
-            this.beeline.setStartPosition(x,y);
+            var snappedPos = this._snapToGrid(this.beeline.getCanvas(), x, y);
+            this.vertices.push(snappedPos);
+            this.beeline.setStartPosition(snappedPos.x, snappedPos.y);
             this.tempConnection.setVertices(this.vertices);
             if(this.pulse!==null) {
                 this.pulse.remove();
                 this.pulse = null;
             }
-            this.ripple(x,y,0);
+            this.ripple(snappedPos.x, snappedPos.y, 0);
             return;
         }
 
@@ -212,7 +224,8 @@ draw2d.policy.connection.ClickConnectionCreatePolicy = draw2d.policy.connection.
     onMouseMove: function(canvas, x, y, shiftKey, ctrlKey)
     {
         if(this.beeline!==null){
-            this.beeline.setEndPosition(x,y);
+            var snappedPos = this._snapToGrid(canvas, x, y);
+            this.beeline.setEndPosition(snappedPos.x, snappedPos.y);
         }
     },
 
@@ -242,6 +255,19 @@ draw2d.policy.connection.ClickConnectionCreatePolicy = draw2d.policy.connection.
         }
     },
 
+
+    _snapToGrid: function(canvas, x, y)
+    {
+        var pos = new draw2d.geo.Point(x, y);
+        canvas.editPolicy.each(function(i, policy) {
+            if(policy instanceof draw2d.policy.canvas.SnapToGridEditPolicy) {
+                var g = policy.grid;
+                pos.x = g * Math.floor((pos.x + g / 2.0) / g);
+                pos.y = g * Math.floor((pos.y + g / 2.0) / g);
+            }
+        });
+        return pos;
+    },
 
     createConnection: function()
     {
